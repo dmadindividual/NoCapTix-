@@ -1,15 +1,23 @@
 package topg.Event_Platform.service;
 
 
+import io.micrometer.common.util.StringUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import topg.Event_Platform.dto.UserDto;
-import topg.Event_Platform.dto.UserRequestDto;
-import topg.Event_Platform.dto.UserResponseDto;
+import topg.Event_Platform.config.JwtUtils;
+import topg.Event_Platform.config.UserDetailsServiceImpl;
+import topg.Event_Platform.dto.*;
 import topg.Event_Platform.enums.Role;
 import topg.Event_Platform.exceptions.ErrorCreatingUser;
 import topg.Event_Platform.exceptions.InvalidRole;
+import topg.Event_Platform.exceptions.InvalidUserInputException;
 import topg.Event_Platform.exceptions.UserNotFoundInDataBase;
 import topg.Event_Platform.models.User;
 import topg.Event_Platform.repositories.UserRepository;
@@ -22,22 +30,25 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtils jwtUtils;
+    private final AuthenticationManager authenticationManager;
+
 
 
     @Transactional
     public UserResponseDto createUser(UserRequestDto userRequestDto){
         try {
+            validateUserInput(userRequestDto);
             Role role = Role.valueOf(userRequestDto.role().toUpperCase());
-
             User user = User.builder()
                     .id(userIdGenerator(role))
                     .name(userRequestDto.name())
-                    .password(userRequestDto.password())
+                    .password(passwordEncoder.encode(userRequestDto.password()))
                     .email(userRequestDto.email())
                     .role(role)
                     .ninNumber(userRequestDto.ninNumber())
                     .build();
-
             userRepository.save(user);
 
             UserDto data = new UserDto(
@@ -67,9 +78,26 @@ public class UserService {
 
     }
 
-    public UserResponseDto getUser(String userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundInDataBase("User not found"));
+
+    private void validateUserInput(UserRequestDto userRequestDto) {
+        if (StringUtils.isBlank(userRequestDto.email()) ||
+                StringUtils.isBlank(userRequestDto.password()) ||
+                StringUtils.isBlank(userRequestDto.name())) {
+            throw new InvalidUserInputException("Email, password, or username cannot be blank.");
+        }
+        if (userRepository.findByEmail(userRequestDto.email()).isPresent()) {
+            throw new InvalidUserInputException("Email is already Taken");
+        }
+    }
+
+
+
+    public UserResponseDto getUser(String userId, Authentication connectedUser) {
+        UserDetailsServiceImpl userDetails = (UserDetailsServiceImpl) connectedUser.getPrincipal();
+        String email = userDetails.getUsername();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         UserDto dto = new UserDto(
                 user.getId(),
@@ -82,6 +110,40 @@ public class UserService {
     }
 
 
+
+    public String deleteUserById(String userId, Authentication connectedUser) {
+        UserDetailsServiceImpl userDetails = (UserDetailsServiceImpl) connectedUser.getPrincipal();
+        String email = userDetails.getUsername();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        userRepository.delete(user);
+        return "User with id " + userId + " has been successfully deleted.";
+    }
+
+
+    public JwtResponseDto loginUser(LoginRequestDto loginRequestDto) {
+        // Authenticate the user
+        Authentication authentication = authenticateUser(loginRequestDto);
+
+        // Set authentication context
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        UserDetailsServiceImpl userDetails = (UserDetailsServiceImpl) authentication.getPrincipal();
+        // Generate JWT token for the authenticated user
+        String jwt = jwtUtils.generateToken(userDetails);
+
+        return new JwtResponseDto(true, jwt);
+    }
+
+    private Authentication authenticateUser(LoginRequestDto loginRequestDto) {
+        return authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        loginRequestDto.username(),
+                        loginRequestDto.password()
+                )
+        );
+    }
 
 
 }

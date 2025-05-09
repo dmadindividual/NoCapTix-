@@ -1,10 +1,12 @@
 package topg.Event_Platform.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -111,4 +113,47 @@ public class EventService {
 
 
     }
+
+
+    @Transactional
+    public String deleteEventById(Integer id, Authentication connectedUser) {
+        UserDetailsServiceImpl userDetails = (UserDetailsServiceImpl) connectedUser.getPrincipal();
+        String email = userDetails.getUsername();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        Events event = eventRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+
+        if (!event.getCreatedBy().getId().equals(user.getId())) {
+            throw new AccessDeniedException("You are not authorized to delete this event");
+        }
+
+        eventRepository.delete(event);
+
+        return "Event deleted successfully";
+    }
+
+
+    public List<EventResponseDto> getAllOrganizerEvents(Authentication connectedUser) {
+        UserDetailsServiceImpl userDetails = (UserDetailsServiceImpl) connectedUser.getPrincipal();
+        String email = userDetails.getUsername();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        List<Events> events = eventRepository.findByCreatedBy(user);
+
+        return events.stream().map(event -> new EventResponseDto(
+                event.getEventId(),
+                event.getName(),
+                event.getDescription(),
+                event.getLocation(),
+                event.getDateTime(),
+                user.getName(), // or event.getCreatedBy().getName()
+                event.getTicketTypes()
+        )).collect(Collectors.toList());
+    }
+
 }
