@@ -92,7 +92,7 @@ public class UserService {
 
 
 
-    public UserResponseDto getUser(String userId, Authentication connectedUser) {
+    public UserResponseDto getUser( Authentication connectedUser) {
         UserDetailsServiceImpl userDetails = (UserDetailsServiceImpl) connectedUser.getPrincipal();
         String email = userDetails.getUsername();
 
@@ -111,14 +111,14 @@ public class UserService {
 
 
 
-    public String deleteUserById(String userId, Authentication connectedUser) {
+    public String deleteUserById( Authentication connectedUser) {
         UserDetailsServiceImpl userDetails = (UserDetailsServiceImpl) connectedUser.getPrincipal();
         String email = userDetails.getUsername();
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         userRepository.delete(user);
-        return "User with id " + userId + " has been successfully deleted.";
+        return "User with id " + user.getId() + " has been successfully deleted.";
     }
 
 

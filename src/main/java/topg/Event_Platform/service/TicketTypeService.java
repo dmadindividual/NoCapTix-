@@ -36,13 +36,23 @@ public class TicketTypeService {
     @Transactional
     public TicketResponseDto createTicket(TicketRequestDto ticketRequestDto, Authentication connectedUser) {
         UserDetailsServiceImpl userDetails = (UserDetailsServiceImpl) connectedUser.getPrincipal();
-        String email = userDetails.getUsername();
+        String email = connectedUser.getName();
 
-        // Step 2: Retrieve the actual User entity from the DB
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
         Events event = eventRepository.findById(ticketRequestDto.eventId())
                 .orElseThrow(() -> new EventNotFoundInDb("Event not found"));
+
+        // ✅ Ensure only the event organizer can create tickets
+        if (!event.getCreatedBy().getEmail().equalsIgnoreCase(user.getEmail())) {
+            throw new RuntimeException("Only the event organizer can create tickets for this event.");
+        }
+
+        // ✅ Prevent duplicate ticket category for the same event
+        if (ticketTypeRepository.existsByEventAndTicketCategory(event, TicketCategory.valueOf(ticketRequestDto.ticketCategory().toUpperCase()))) {
+            throw new RuntimeException("Ticket category '" + ticketRequestDto.ticketCategory() + "' already exists for this event.");
+        }
 
         if (LocalDateTime.now().isAfter(event.getDateTime())) {
             throw new EventExpired("Event has already occurred. Ticket sales are closed.");
@@ -61,7 +71,6 @@ public class TicketTypeService {
                 event.getDateTime(),
                 ticketRequestDto.totalQuantity()
         );
-
 
         TicketType ticketType = TicketType.builder()
                 .ticketCategory(ticketCategory)

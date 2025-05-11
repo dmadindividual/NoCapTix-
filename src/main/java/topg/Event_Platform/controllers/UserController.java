@@ -2,6 +2,7 @@ package topg.Event_Platform.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import topg.Event_Platform.dto.UserResponseDto;
@@ -13,15 +14,15 @@ import topg.Event_Platform.service.UserService;
 public class UserController {
     private final UserService userService;
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<UserResponseDto> getUser(@PathVariable("userId") String userId, Authentication connectedUser){
-        UserResponseDto data = userService.getUser(userId, connectedUser);
+    @GetMapping("/me")
+    public ResponseEntity<UserResponseDto> getUser( Authentication connectedUser){
+        UserResponseDto data = userService.getUser( connectedUser);
         return ResponseEntity.ok(data);
     }
 
-    @GetMapping("/delete/{userId}")
-    public ResponseEntity<String> deleteUserById(@PathVariable("userId") String userId, Authentication connectedUser){
-        String data = userService.deleteUserById(userId, connectedUser);
+    @DeleteMapping("/delete/me")
+    public ResponseEntity<String> deleteUserById( Authentication connectedUser){
+        String data = userService.deleteUserById( connectedUser);
         return ResponseEntity.ok(data);
     }
 }

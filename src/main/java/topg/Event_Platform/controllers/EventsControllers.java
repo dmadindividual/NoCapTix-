@@ -3,6 +3,7 @@ package topg.Event_Platform.controllers;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import topg.Event_Platform.dto.EventRequestDto;
@@ -21,6 +22,7 @@ public class EventsControllers {
 
 
     @PostMapping
+    @PreAuthorize("hasRole('ROLE_ORGANIZER')")
     public ResponseEntity<EventResponseDto> createEvent(@Valid @RequestBody EventRequestDto eventRequestDto, Authentication connectedUser){
         EventResponseDto data = eventService.createEvent(eventRequestDto, connectedUser);
         return ResponseEntity.ok(data);
@@ -35,13 +37,14 @@ public class EventsControllers {
     }
 
     @GetMapping("/{eventId}")
-    public ResponseEntity<EventResponseDto> getAllEvents( @PathVariable("eventId") Integer id){
+    public ResponseEntity<EventResponseDto> getAllEventsById( @PathVariable("eventId") Integer id){
         EventResponseDto data = eventService.getEventById(id);
         return ResponseEntity.ok(data);
     }
 
     @DeleteMapping("/delete/{eventId}")
-    public ResponseEntity<String> createEvent( @PathVariable("eventId") Integer id, Authentication connectedUser){
+    @PreAuthorize("hasRole('ROLE_ORGANIZER')")
+    public ResponseEntity<String> deleteEventById( @PathVariable("eventId") Integer id, Authentication connectedUser){
         String data = eventService.deleteEventById(id, connectedUser);
         return ResponseEntity.ok(data);
     }

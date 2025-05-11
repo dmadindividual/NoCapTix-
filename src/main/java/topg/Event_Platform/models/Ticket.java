@@ -8,7 +8,6 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 @Entity
-@Table(name = "tickets")
 public class Ticket {
 
     @Id

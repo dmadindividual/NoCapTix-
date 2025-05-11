@@ -2,6 +2,7 @@ package topg.Event_Platform.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +20,7 @@ public class OrganizersController {
     private final EventService eventService;
 
     @GetMapping
+    @PreAuthorize("hasRole('ROLE_ORGANIZER')")
     public ResponseEntity<List<EventResponseDto>> getAllOrganizerEvents(Authentication connectedUser){
         List<EventResponseDto> data = eventService.getAllOrganizerEvents( connectedUser);
         return ResponseEntity.ok(data);

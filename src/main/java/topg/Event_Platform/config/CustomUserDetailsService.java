@@ -38,6 +38,7 @@ public class CustomUserDetailsService implements UserDetailsService {
             System.out.println("User Roles: " + authorities);
 
             return new UserDetailsServiceImpl(
+                    user.getId(),
                     user.getEmail(),
                     user.getPassword(),
                     authorities
