@@ -5,10 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import topg.Event_Platform.config.UserDetailsServiceImpl;
 import topg.Event_Platform.dto.TicketPurchaseRequest;
 import topg.Event_Platform.service.PaymentService;
@@ -30,6 +27,20 @@ public class PaymentControllers {
                                             @AuthenticationPrincipal UserDetailsServiceImpl user) {
         String paystackUrl = paymentService.initializePayment(request, user.getUsername(), user.getId());
         return ResponseEntity.ok(Map.of("payment_url", paystackUrl));
+    }
+
+
+    @PostMapping("/webhook")
+    public ResponseEntity<String> handlePaystackWebhook(@RequestBody String payload,
+                                                        @RequestHeader("x-paystack-signature") String signature) {
+        try {
+            String result = paymentService.processWebhook(payload, signature);
+            return ResponseEntity.ok(result);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body("Invalid signature");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Webhook processing failed");
+        }
     }
 
 }

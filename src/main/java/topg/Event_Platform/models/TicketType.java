@@ -15,8 +15,7 @@ import java.util.List;
 public class TicketType {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer ticketTypeId;
+    private String ticketTypeId;
 
     @Enumerated(EnumType.STRING)
     private TicketCategory ticketCategory; // e.g., Regular, Early Bird

@@ -7,6 +7,6 @@ import topg.Event_Platform.models.Events;
 import topg.Event_Platform.models.TicketType;
 
 @Repository
-public interface TicketTypeRepository extends JpaRepository<TicketType, Integer> {
+public interface TicketTypeRepository extends JpaRepository<TicketType, String> {
     boolean existsByEventAndTicketCategory(Events event, TicketCategory ticketCategory);
 }

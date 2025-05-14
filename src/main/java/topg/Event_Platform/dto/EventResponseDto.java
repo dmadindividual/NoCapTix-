@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record EventResponseDto(
-        Integer eventId,
+        String eventId,
         String name,
         String description,
         String location,

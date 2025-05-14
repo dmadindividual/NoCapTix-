@@ -20,6 +20,7 @@ import topg.Event_Platform.repositories.EventRepository;
 import topg.Event_Platform.repositories.TicketTypeRepository;
 import topg.Event_Platform.repositories.UserRepository;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -44,12 +45,10 @@ public class TicketTypeService {
         Events event = eventRepository.findById(ticketRequestDto.eventId())
                 .orElseThrow(() -> new EventNotFoundInDb("Event not found"));
 
-        // ✅ Ensure only the event organizer can create tickets
         if (!event.getCreatedBy().getEmail().equalsIgnoreCase(user.getEmail())) {
             throw new RuntimeException("Only the event organizer can create tickets for this event.");
         }
 
-        // ✅ Prevent duplicate ticket category for the same event
         if (ticketTypeRepository.existsByEventAndTicketCategory(event, TicketCategory.valueOf(ticketRequestDto.ticketCategory().toUpperCase()))) {
             throw new RuntimeException("Ticket category '" + ticketRequestDto.ticketCategory() + "' already exists for this event.");
         }
@@ -65,7 +64,7 @@ public class TicketTypeService {
             throw new InvalidTIcketCategory("Invalid ticket category. Valid options are: " + Arrays.toString(getValidCategories()));
         }
 
-        double finalPrice = calculateDynamicPrice(
+        double finalPrice = calculateDynamicPriceInNaira(
                 ticketCategory,
                 ticketRequestDto.price(),
                 event.getDateTime(),
@@ -73,6 +72,7 @@ public class TicketTypeService {
         );
 
         TicketType ticketType = TicketType.builder()
+                .ticketTypeId(generateTicketTypeId(ticketCategory))
                 .ticketCategory(ticketCategory)
                 .price(finalPrice)
                 .totalQuantity(ticketRequestDto.totalQuantity())
@@ -98,7 +98,8 @@ public class TicketTypeService {
                 .toArray(String[]::new);
     }
 
-    private double calculateDynamicPrice(
+    // Return final price in naira, suitable for storing in DB
+    private double calculateDynamicPriceInNaira(
             TicketCategory category,
             double basePrice,
             LocalDateTime eventDate,
@@ -108,6 +109,32 @@ public class TicketTypeService {
         long daysUntilEvent = ChronoUnit.DAYS.between(now, eventDate);
 
         return switch (category) {
+            case EARLY_BIRD -> {
+                if (daysUntilEvent >= 7) yield basePrice * 0.90;
+                else if (daysUntilEvent <= 2 && daysUntilEvent >= 0) yield basePrice * 1.20;
+                else yield basePrice;
+            }
+            case REGULAR -> {
+                if (daysUntilEvent <= 1 && daysUntilEvent >= 0) yield basePrice * 1.10;
+                else yield basePrice;
+            }
+            case VIP -> basePrice * 0.95;
+            case GROUP -> (quantity >= 5) ? basePrice * 0.85 : basePrice;
+            default -> basePrice;
+        };
+    }
+
+
+    private int calculateDynamicPriceInKobo(
+            TicketCategory category,
+            double basePrice,
+            LocalDateTime eventDate,
+            int quantity
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        long daysUntilEvent = ChronoUnit.DAYS.between(now, eventDate);
+
+        double finalPrice = switch (category) {
             case EARLY_BIRD -> {
                 if (daysUntilEvent >= 7) yield basePrice * 0.90; // 10% discount
                 else if (daysUntilEvent <= 2 && daysUntilEvent >= 0) yield basePrice * 1.20; // 20% increase
@@ -121,8 +148,42 @@ public class TicketTypeService {
             case GROUP -> (quantity >= 5) ? basePrice * 0.85 : basePrice;
             default -> basePrice;
         };
+
+        return (int) Math.round(finalPrice * 100); // Convert Naira to Kobo
     }
 
+
+    private static String generateTicketTypeId(TicketCategory category) {
+        String prefix;
+        String ALPHANUMERIC = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+        SecureRandom RANDOM = new SecureRandom();
+        // Map category to 3-letter code
+        switch (category) {
+            case VIP:
+                prefix = "VIP";
+                break;
+            case REGULAR:
+                prefix = "REG";
+                break;
+            case EARLY_BIRD:
+                prefix = "EBT";
+                break;
+            case GROUP:
+                prefix = "GRP";
+                break;
+            default:
+                prefix = "UNK"; // fallback if unknown
+        }
+
+        StringBuilder sb = new StringBuilder("TKT_").append(prefix).append("_");
+
+        for (int i = 0; i < 9; i++) {
+            int index = RANDOM.nextInt(ALPHANUMERIC.length());
+            sb.append(ALPHANUMERIC.charAt(index));
+        }
+
+        return sb.toString();
+    }
 
 
 }

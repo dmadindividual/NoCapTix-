@@ -33,6 +33,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final AuthenticationManager authenticationManager;
+    private final PaymentService paymentService;
 
 
 
@@ -50,6 +51,23 @@ public class UserService {
                     .ninNumber(userRequestDto.ninNumber())
                     .build();
             userRepository.save(user);
+
+            if (role == Role.ORGANIZER) {
+                if (StringUtils.isBlank(userRequestDto.accountNumber()) || StringUtils.isBlank(userRequestDto.bankCode())) {
+                    throw new InvalidUserInputException("Organizer must provide bank account number and bank code.");
+                }
+
+                user.setAccountNumber(userRequestDto.accountNumber());
+                user.setBankCode(userRequestDto.bankCode());
+
+                // Call Paystack and get subaccount code
+                String subaccountCode = paymentService.createSubaccount(user);
+                user.setSubaccountCode(subaccountCode);
+                ResolvedBankAccountDto dto = paymentService.resolveBankAccount(userRequestDto.accountNumber(), userRequestDto.bankCode());
+                System.out.println(dto.accountName());  // Will print resolved account name if valid
+
+                userRepository.save(user); // Save updated info
+            }
 
             UserDto data = new UserDto(
                     user.getId(),
@@ -88,6 +106,13 @@ public class UserService {
         if (userRepository.findByEmail(userRequestDto.email()).isPresent()) {
             throw new InvalidUserInputException("Email is already Taken");
         }
+
+        if ("ORGANIZER".equalsIgnoreCase(userRequestDto.role())) {
+            if (StringUtils.isBlank(userRequestDto.accountNumber()) || StringUtils.isBlank(userRequestDto.bankCode())) {
+                throw new InvalidUserInputException("Organizers must provide account number and bank code.");
+            }
+        }
+
     }
 
 

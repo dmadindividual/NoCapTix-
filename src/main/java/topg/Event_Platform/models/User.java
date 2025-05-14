@@ -38,6 +38,15 @@ public class User {
     private String ninNumber;
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Ticket> tickets = new ArrayList<>();
+    @Column(name = "bank_code")
+    private String bankCode;
+
+    @Column(name = "account_number")
+    private String accountNumber;
+
+    @Column(name = "subaccount_code")
+    private String subaccountCode;
+
 
 
     @CreatedDate

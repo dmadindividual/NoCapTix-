@@ -11,8 +11,7 @@ import lombok.*;
 public class Ticket {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer ticketId;
+    private String ticketId;
 
     private String qrCodePath; // Or use byte[] for QR code image
 

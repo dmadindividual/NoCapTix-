@@ -21,6 +21,7 @@ import topg.Event_Platform.models.User;
 import topg.Event_Platform.repositories.EventRepository;
 import topg.Event_Platform.repositories.UserRepository;
 
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,6 +41,7 @@ public class EventService {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new UsernameNotFoundException("User not found"));
             Events events = Events.builder()
+                    .eventId(generateEventId())
                     .name(eventRequestDto.name())
                     .description(eventRequestDto.description())
                     .location(eventRequestDto.location())
@@ -68,7 +70,7 @@ public class EventService {
     }
 
 
-    public EventResponseDto getEventById(Integer id){
+    public EventResponseDto getEventById(String id){
         Events events = eventRepository.findById(id)
                 .orElseThrow(()-> new EventNotFoundInDb("Event with id :" + id + " could not be found"));
         return new EventResponseDto(
@@ -116,7 +118,7 @@ public class EventService {
 
 
     @Transactional
-    public String deleteEventById(Integer id, Authentication connectedUser) {
+    public String deleteEventById(String id, Authentication connectedUser) {
         UserDetailsServiceImpl userDetails = (UserDetailsServiceImpl) connectedUser.getPrincipal();
         String email = userDetails.getUsername();
 
@@ -154,6 +156,17 @@ public class EventService {
                 user.getName(), // or event.getCreatedBy().getName()
                 event.getTicketTypes()
         )).collect(Collectors.toList());
+    }
+
+    private  String generateEventId() {
+         String ALPHANUMERIC = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+        SecureRandom RANDOM = new SecureRandom();
+        StringBuilder sb = new StringBuilder("evt_");
+        for (int i = 0; i < 9; i++) {
+            int index = RANDOM.nextInt(ALPHANUMERIC.length());
+            sb.append(ALPHANUMERIC.charAt(index));
+        }
+        return sb.toString();
     }
 
 }

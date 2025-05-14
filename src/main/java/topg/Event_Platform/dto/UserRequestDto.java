@@ -22,5 +22,8 @@ public record UserRequestDto(
 
         @NotBlank(message = "NIN number is required")
         @Size(min = 11, max = 11, message = "NIN number must be 11 characters long")
-        String ninNumber
+        String ninNumber,
+        String accountNumber,
+
+        String bankCode
 ) {}

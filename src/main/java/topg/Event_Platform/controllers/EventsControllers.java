@@ -37,14 +37,14 @@ public class EventsControllers {
     }
 
     @GetMapping("/{eventId}")
-    public ResponseEntity<EventResponseDto> getAllEventsById( @PathVariable("eventId") Integer id){
+    public ResponseEntity<EventResponseDto> getAllEventsById( @PathVariable("eventId") String id){
         EventResponseDto data = eventService.getEventById(id);
         return ResponseEntity.ok(data);
     }
 
     @DeleteMapping("/delete/{eventId}")
     @PreAuthorize("hasRole('ROLE_ORGANIZER')")
-    public ResponseEntity<String> deleteEventById( @PathVariable("eventId") Integer id, Authentication connectedUser){
+    public ResponseEntity<String> deleteEventById( @PathVariable("eventId") String id, Authentication connectedUser){
         String data = eventService.deleteEventById(id, connectedUser);
         return ResponseEntity.ok(data);
     }

@@ -1,8 +1,8 @@
 package topg.Event_Platform.dto;
 
 public record TicketPurchaseRequest(
-         Integer eventId,
-         Integer ticketTypeId,
+         String eventId,
+         String ticketTypeId,
          Integer quantity
 ) {
 }

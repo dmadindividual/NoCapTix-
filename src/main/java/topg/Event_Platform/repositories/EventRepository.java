@@ -8,6 +8,6 @@ import topg.Event_Platform.models.User;
 import java.util.List;
 
 @Repository
-public interface EventRepository extends JpaRepository<Events, Integer> {
+public interface EventRepository extends JpaRepository<Events, String> {
     List<Events> findByCreatedBy(User user);
 }

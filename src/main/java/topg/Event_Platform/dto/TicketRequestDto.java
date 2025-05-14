@@ -10,5 +10,5 @@ public record TicketRequestDto(
         @Positive double price,
         @Min(1) int totalQuantity,
         @Min(0) int quantityAvailable,
-        @NotNull Integer eventId
+        @NotNull String eventId
 ) {}
