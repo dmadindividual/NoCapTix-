@@ -8,6 +8,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import topg.Event_Platform.config.UserDetailsServiceImpl;
 import topg.Event_Platform.dto.TicketPurchaseRequest;
+import topg.Event_Platform.service.EmailService;
 import topg.Event_Platform.service.PaymentService;
 
 import java.nio.file.attribute.UserPrincipal;
@@ -18,6 +19,7 @@ import java.util.Map;
 @RestController
 public class PaymentControllers {
     private final PaymentService paymentService;
+
 
 
 
@@ -41,6 +43,13 @@ public class PaymentControllers {
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Webhook processing failed");
         }
+    }
+
+
+    @PostMapping("/recover")
+    public ResponseEntity<String> triggerRecoveryManually() {
+        paymentService.verifyAndRecoverFailedOrders();
+        return ResponseEntity.ok("Recovery triggered");
     }
 
 }

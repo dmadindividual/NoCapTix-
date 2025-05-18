@@ -17,49 +17,47 @@ import java.awt.image.BufferedImage;
 
 public class QRCodeGenerator {
 
-    public static void generateQRCode(String eventName, String userName, String email, String ticketType, LocalDateTime issuedAt, String ticketId) throws WriterException, IOException {
-        // Format the date to a readable format
+    public static String generateQRCode(String eventName, String userName, String email, String ticketType,
+                                      LocalDateTime issuedAt, String ticketId) throws WriterException, IOException {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         String formattedDate = issuedAt.format(formatter);
 
-        // Prepare the QR code data with all required information
         String qrCodeData = "Event: " + eventName + "\n" +
                 "User: " + (userName != null ? userName : email) + "\n" +
                 "Issued At: " + formattedDate + "\n" +
                 "Ticket Id: " + ticketId + "\n" +
                 "Ticket Type: " + ticketType;
 
-        // QR Code parameters
-        int size = 250;  // Size of the QR code
-        String fileType = "PNG";  // Image type
+        int size = 250;
+        String fileType = "PNG";
 
-        // Get the Downloads folder path
         String downloadsFolder = System.getProperty("user.home") + File.separator + "Downloads";
-        // Create a directory for QR codes if it doesn't exist
         File qrCodeDir = new File(downloadsFolder + File.separator + "qr_codes");
         if (!qrCodeDir.exists()) {
             qrCodeDir.mkdirs();
         }
 
-        // Set the QR code options
         Hashtable<EncodeHintType, Object> hintMap = new Hashtable<>();
         hintMap.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.L);
 
-        // Create the QR Code
         MultiFormatWriter qrCodeWriter = new MultiFormatWriter();
         BitMatrix bitMatrix = qrCodeWriter.encode(qrCodeData, BarcodeFormat.QR_CODE, size, size, hintMap);
 
-        // Set the file path for the QR code image
-        String filePath = qrCodeDir + File.separator + "ticket_qr_" + System.currentTimeMillis() + ".png";
+        // Sanitize username and event name to be safe for filenames (remove spaces and special chars)
+        String safeUserName = userName != null ? userName.replaceAll("[^a-zA-Z0-9]", "_") : "user";
+        String safeEventName = eventName.replaceAll("[^a-zA-Z0-9]", "_");
 
-        // Write the QR code to the specified file
+        String timestamp = String.valueOf(System.currentTimeMillis());
+
+        String fileName = safeUserName + "_" + safeEventName + "_" + timestamp + ".png";
+        String filePath = qrCodeDir + File.separator + fileName;
+
         File outputFile = new File(filePath);
         ImageIO.write(toBufferedImage(bitMatrix), fileType, outputFile);
 
-        // Print the path where the QR code is saved
         System.out.println("QR code saved to: " + filePath);
+        return filePath;
     }
-
     // Convert BitMatrix to BufferedImage
     private static BufferedImage toBufferedImage(BitMatrix matrix) {
         int width = matrix.getWidth();

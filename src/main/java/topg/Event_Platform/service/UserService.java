@@ -24,6 +24,7 @@ import topg.Event_Platform.repositories.UserRepository;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -34,6 +35,9 @@ public class UserService {
     private final JwtUtils jwtUtils;
     private final AuthenticationManager authenticationManager;
     private final PaymentService paymentService;
+    private final EmailService emailService;
+
+
 
 
 
@@ -68,6 +72,7 @@ public class UserService {
 
                 userRepository.save(user); // Save updated info
             }
+            sendWelcomeEmail(user);
 
             UserDto data = new UserDto(
                     user.getId(),
@@ -84,6 +89,21 @@ public class UserService {
             return new UserResponseDto(false, null, "An error occurred while creating the user: " + e.getMessage());
         }
     }
+
+    private void sendWelcomeEmail(User user) {
+        Map<String, Object> variables = Map.of(
+                "username", user.getName(),
+                "role", user.getRole().name()
+        );
+
+        emailService.sendEmail(
+                user.getEmail(),
+                "Welcome to the Event Platform 🎉",
+                "welcome-email",
+                variables
+        );
+    }
+
 
     private String userIdGenerator(Role role){
         String prefix = switch (role){

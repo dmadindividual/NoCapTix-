@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Your Ticket</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f8;
+            color: #333;
+            padding: 30px;
+            animation: fadeInBody 1s ease-in;
+        }
+
+        .ticket-container {
+            max-width: 600px;
+            margin: auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+            padding: 30px;
+            animation: slideIn 0.7s ease-out;
+        }
+
+        h2 {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 10px;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin: 15px 0;
+            animation: fadeIn 1.2s ease-in-out;
+        }
+
+        strong {
+            color: #007BFF;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #777;
+            animation: fadeIn 1.4s ease-in;
+        }
+
+        /* Animations */
+        @keyframes slideIn {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInBody {
+            from {
+                background-color: #e0e5ea;
+            }
+            to {
+                background-color: #f4f6f8;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="ticket-container">
+    <p>Hi <strong th:text="${name}">User</strong>,</p>
+    <p>Thank you for purchasing a ticket for <strong th:text="${eventName}">Event</strong>.</p>
+    <p>Your ticket ID is: <strong th:text="${ticketId}">TICKET_ID</strong></p>
+    <p>Your QR code is attached to this email. Please bring it to the event.</p>
+    <p class="footer">Best regards,<br/>The Event Platform Team</p>
+</div>
+</body>
+</html>
