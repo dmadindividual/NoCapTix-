@@ -1,7 +1,9 @@
 package topg.Event_Platform.exceptions;
 
-public class EventExpired extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class EventExpired extends  AppBaseException {
     public EventExpired(String message) {
-        super(message);
+        super(message, HttpStatus.BAD_REQUEST);
     }
 }

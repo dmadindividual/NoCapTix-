@@ -1,7 +1,9 @@
 package topg.Event_Platform.exceptions;
 
-public class ErrorCreatingUser extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class ErrorCreatingUser extends AppBaseException {
     public ErrorCreatingUser(String message) {
-        super(message);
+        super(message, HttpStatus.BAD_REQUEST);
     }
 }

@@ -14,9 +14,7 @@ import org.springframework.web.client.RestTemplate;
 import topg.Event_Platform.dto.ResolvedBankAccountDto;
 import topg.Event_Platform.dto.TicketPurchaseRequest;
 import topg.Event_Platform.enums.Role;
-import topg.Event_Platform.exceptions.EventNotFoundInDb;
-import topg.Event_Platform.exceptions.InvalidTIcketCategory;
-import topg.Event_Platform.exceptions.UserNotFoundInDataBase;
+import topg.Event_Platform.exceptions.*;
 import topg.Event_Platform.models.*;
 import topg.Event_Platform.repositories.*;
 
@@ -59,16 +57,16 @@ public class PaymentService {
         Events events = eventsRepo.findById(ticketRequestDto.eventId())
                 .orElseThrow(() -> new EventNotFoundInDb("Event not found"));
         TicketType ticketType = ticketTypeRepo.findByIdForUpdate(ticketRequestDto.ticketTypeId())
-                .orElseThrow(() -> new InvalidTIcketCategory("Ticket type not found"));
+                .orElseThrow(() -> new InvalidTicketCategory("Ticket type not found"));
 
 
 
         if (!ticketType.getEvent().getEventId().equals(events.getEventId())) {
-            throw new InvalidTIcketCategory("Ticket type does not belong to the event");
+            throw new InvalidTicketCategory("Ticket type does not belong to the event");
         }
 
         if (ticketType.getQuantityAvailable() < ticketRequestDto.quantity()) {
-            throw new InvalidTIcketCategory("Not enough tickets available");
+            throw new InvalidTicketCategory("Not enough tickets available");
         }
 
         User user = userRepo.findById(userId)
@@ -159,7 +157,7 @@ public class PaymentService {
 
         TicketType type = order.getTicketType();
         if (type.getQuantityAvailable() < order.getQuantity()) {
-            throw new RuntimeException("Not enough tickets available during confirmation");
+            throw new UnAvailableTickets("Not enough tickets available during confirmation");
         }
 
         order.setStatus("PAID");
@@ -210,7 +208,7 @@ public class PaymentService {
                 );
             } catch (Exception e) {
                 log.error("Failed to generate QR code for ticket {}", ticket.getTicketId(), e);
-                throw new RuntimeException("QR code generation failed");
+                throw new QrCodeException("QR code generation failed");
             }
         }
 
@@ -301,12 +299,12 @@ public class PaymentService {
         }
 
         if (user.getBankCode() == null || user.getAccountNumber() == null) {
-            throw new IllegalArgumentException("Organizer must have a bank account number and bank code");
+            throw new InvalidUserInputException("Organizer must have a bank account number and bank code");
         }
 
         ResolvedBankAccountDto resolved = resolveBankAccount(user.getAccountNumber(), user.getBankCode());
         if (!resolved.success()) {
-            throw new RuntimeException("Invalid bank account: " + resolved.message());
+            throw new InvalidBankAccountFromPayStack("Invalid bank account: " + resolved.message());
         }
 
 
@@ -335,7 +333,7 @@ public class PaymentService {
                 JsonNode jsonNode = objectMapper.readTree(response.getBody());
                 boolean status = jsonNode.get("status").asBoolean();
                 if (!status) {
-                    throw new RuntimeException("Failed to create subaccount: " + jsonNode.get("message").asText());
+                    throw new InvalidBankAccountFromPayStack("Failed to create subaccount: " + jsonNode.get("message").asText());
                 }
 
                 return jsonNode.get("data").get("subaccount_code").asText();
@@ -343,7 +341,7 @@ public class PaymentService {
                 throw new RuntimeException("Error parsing Paystack response", e);
             }
         } else {
-            throw new RuntimeException("Failed to create subaccount: HTTP " + response.getStatusCode());
+            throw new InvalidBankAccountFromPayStack("Failed to create subaccount: HTTP " + response.getStatusCode());
         }
     }
     public ResolvedBankAccountDto resolveBankAccount(String accountNumber, String bankCode) {

@@ -1,7 +1,9 @@
 package topg.Event_Platform.exceptions;
 
-public class EventNotFoundInDb extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class EventNotFoundInDb extends  AppBaseException {
     public EventNotFoundInDb(String message) {
-        super(message);
+        super(message, HttpStatus.BAD_REQUEST);
     }
 }

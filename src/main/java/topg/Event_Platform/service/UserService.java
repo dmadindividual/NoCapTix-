@@ -4,6 +4,7 @@ package topg.Event_Platform.service;
 import io.micrometer.common.util.StringUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,10 +16,7 @@ import topg.Event_Platform.config.JwtUtils;
 import topg.Event_Platform.config.UserDetailsServiceImpl;
 import topg.Event_Platform.dto.*;
 import topg.Event_Platform.enums.Role;
-import topg.Event_Platform.exceptions.ErrorCreatingUser;
-import topg.Event_Platform.exceptions.InvalidRole;
-import topg.Event_Platform.exceptions.InvalidUserInputException;
-import topg.Event_Platform.exceptions.UserNotFoundInDataBase;
+import topg.Event_Platform.exceptions.*;
 import topg.Event_Platform.models.User;
 import topg.Event_Platform.repositories.UserRepository;
 
@@ -168,18 +166,26 @@ public class UserService {
 
 
     public JwtResponseDto loginUser(LoginRequestDto loginRequestDto) {
-        // Authenticate the user
-        Authentication authentication = authenticateUser(loginRequestDto);
+        try {
+            // Authenticate the user
+            Authentication authentication = authenticateUser(loginRequestDto);
 
-        // Set authentication context
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+            // Set authentication context
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        UserDetailsServiceImpl userDetails = (UserDetailsServiceImpl) authentication.getPrincipal();
-        // Generate JWT token for the authenticated user
-        String jwt = jwtUtils.generateToken(userDetails);
+            UserDetailsServiceImpl userDetails = (UserDetailsServiceImpl) authentication.getPrincipal();
 
-        return new JwtResponseDto(true, jwt);
+            // Generate JWT token for the authenticated user
+            String jwt = jwtUtils.generateToken(userDetails);
+
+            return new JwtResponseDto(true, jwt);
+        } catch (BadCredentialsException ex) {
+            throw new InvalidLoginDetailsException("Invalid username or password.");
+        } catch (Exception ex) {
+            throw new InvalidLoginDetailsException("Login failed. Please try again.");
+        }
     }
+
 
     private Authentication authenticateUser(LoginRequestDto loginRequestDto) {
         return authenticationManager.authenticate(

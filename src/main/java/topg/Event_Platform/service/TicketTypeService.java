@@ -10,9 +10,10 @@ import topg.Event_Platform.config.UserDetailsServiceImpl;
 import topg.Event_Platform.dto.TicketRequestDto;
 import topg.Event_Platform.dto.TicketResponseDto;
 import topg.Event_Platform.enums.TicketCategory;
+import topg.Event_Platform.exceptions.EventExceptions;
 import topg.Event_Platform.exceptions.EventExpired;
 import topg.Event_Platform.exceptions.EventNotFoundInDb;
-import topg.Event_Platform.exceptions.InvalidTIcketCategory;
+import topg.Event_Platform.exceptions.InvalidTicketCategory;
 import topg.Event_Platform.models.Events;
 import topg.Event_Platform.models.TicketType;
 import topg.Event_Platform.models.User;
@@ -46,11 +47,11 @@ public class TicketTypeService {
                 .orElseThrow(() -> new EventNotFoundInDb("Event not found"));
 
         if (!event.getCreatedBy().getEmail().equalsIgnoreCase(user.getEmail())) {
-            throw new RuntimeException("Only the event organizer can create tickets for this event.");
+            throw new EventExceptions("Only the event organizer can create tickets for this event.");
         }
 
         if (ticketTypeRepository.existsByEventAndTicketCategory(event, TicketCategory.valueOf(ticketRequestDto.ticketCategory().toUpperCase()))) {
-            throw new RuntimeException("Ticket category '" + ticketRequestDto.ticketCategory() + "' already exists for this event.");
+            throw new EventExceptions("Ticket category '" + ticketRequestDto.ticketCategory() + "' already exists for this event.");
         }
 
         if (LocalDateTime.now().isAfter(event.getDateTime())) {
@@ -61,7 +62,7 @@ public class TicketTypeService {
         try {
             ticketCategory = TicketCategory.valueOf(ticketRequestDto.ticketCategory().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new InvalidTIcketCategory("Invalid ticket category. Valid options are: " + Arrays.toString(getValidCategories()));
+            throw new InvalidTicketCategory("Invalid ticket category. Valid options are: " + Arrays.toString(getValidCategories()));
         }
 
         double finalPrice = calculateDynamicPriceInNaira(
@@ -125,32 +126,7 @@ public class TicketTypeService {
     }
 
 
-    private int calculateDynamicPriceInKobo(
-            TicketCategory category,
-            double basePrice,
-            LocalDateTime eventDate,
-            int quantity
-    ) {
-        LocalDateTime now = LocalDateTime.now();
-        long daysUntilEvent = ChronoUnit.DAYS.between(now, eventDate);
 
-        double finalPrice = switch (category) {
-            case EARLY_BIRD -> {
-                if (daysUntilEvent >= 7) yield basePrice * 0.90; // 10% discount
-                else if (daysUntilEvent <= 2 && daysUntilEvent >= 0) yield basePrice * 1.20; // 20% increase
-                else yield basePrice;
-            }
-            case REGULAR -> {
-                if (daysUntilEvent <= 1 && daysUntilEvent >= 0) yield basePrice * 1.10; // 10% increase
-                else yield basePrice;
-            }
-            case VIP -> basePrice * 0.95;
-            case GROUP -> (quantity >= 5) ? basePrice * 0.85 : basePrice;
-            default -> basePrice;
-        };
-
-        return (int) Math.round(finalPrice * 100); // Convert Naira to Kobo
-    }
 
 
     private static String generateTicketTypeId(TicketCategory category) {
@@ -158,22 +134,13 @@ public class TicketTypeService {
         String ALPHANUMERIC = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
         SecureRandom RANDOM = new SecureRandom();
         // Map category to 3-letter code
-        switch (category) {
-            case VIP:
-                prefix = "VIP";
-                break;
-            case REGULAR:
-                prefix = "REG";
-                break;
-            case EARLY_BIRD:
-                prefix = "EBT";
-                break;
-            case GROUP:
-                prefix = "GRP";
-                break;
-            default:
-                prefix = "UNK"; // fallback if unknown
-        }
+        prefix = switch (category) {
+            case VIP -> "VIP";
+            case REGULAR -> "REG";
+            case EARLY_BIRD -> "EBT";
+            case GROUP -> "GRP";
+            default -> "UNK";
+        };
 
         StringBuilder sb = new StringBuilder("TKT_").append(prefix).append("_");
 
